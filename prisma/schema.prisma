@@ -1,0 +1,108 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  telegramId  String         @id @map("telegram_id")
+  username    String?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  
+  riskProfile RiskProfile?
+  portfolio   Portfolio?
+  watchlist   WatchlistItem[]
+  paperTrades PaperTrade[]
+  walletTracks WalletTrack[]
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+model RiskProfile {
+  userId          String   @id @map("user_id")
+  maxTradeSize    Float    @default(100.0) @map("max_trade_size")
+  cooldownMinutes Int      @default(5) @map("cooldown_minutes")
+  stopLossPct     Float    @default(10.0) @map("stop_loss_pct")
+  takeProfitPct   Float    @default(20.0) @map("take_profit_pct")
+  antiRugEnabled  Boolean  @default(true) @map("anti_rug_enabled")
+
+  user            User     @relation(fields: [userId], references: [telegramId], onDelete: Cascade)
+
+  @@map("risk_profiles")
+}
+
+model Portfolio {
+  userId      String   @id @map("user_id")
+  cashBalance Float    @default(10000.0) @map("cash_balance")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [telegramId], onDelete: Cascade)
+
+  @@map("portfolios")
+}
+
+model WatchlistItem {
+  id          Int      @id @default(autoincrement())
+  userId      String   @map("user_id")
+  tokenSymbol String   @map("token_symbol")
+  tokenMint   String?  @map("token_mint")
+  addedAt     DateTime @default(now()) @map("added_at")
+
+  user        User     @relation(fields: [userId], references: [telegramId], onDelete: Cascade)
+
+  @@unique([userId, tokenSymbol])
+  @@map("watchlists")
+}
+
+model PaperTrade {
+  id          Int       @id @default(autoincrement())
+  userId      String    @map("user_id")
+  tokenSymbol String    @map("token_symbol")
+  tokenMint   String    @map("token_mint")
+  type        String    // 'BUY' or 'SELL'
+  entryPrice  Float     @map("entry_price")
+  exitPrice   Float?    @map("exit_price")
+  amount      Float
+  costBasis   Float     @map("cost_basis")
+  stopLoss    Float?    @map("stop_loss")
+  takeProfit  Float?    @map("take_profit")
+  status      String    @default("OPEN") // 'OPEN', 'CLOSED'
+  pnl         Float     @default(0.0)
+  openedAt    DateTime  @default(now()) @map("opened_at")
+  closedAt    DateTime? @map("closed_at")
+
+  user        User      @relation(fields: [userId], references: [telegramId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("paper_trades")
+}
+
+model WalletTrack {
+  id            Int      @id @default(autoincrement())
+  userId        String   @map("user_id")
+  walletAddress String   @map("wallet_address")
+  label         String?
+  addedAt       DateTime @default(now()) @map("added_at")
+
+  user          User     @relation(fields: [userId], references: [telegramId], onDelete: Cascade)
+
+  @@unique([userId, walletAddress])
+  @@map("wallet_tracks")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    String?  @map("user_id")
+  action    String
+  details   String
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User?    @relation(fields: [userId], references: [telegramId], onDelete: SetNull)
+
+  @@map("audit_logs")
+}

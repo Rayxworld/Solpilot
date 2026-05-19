@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SolPilot — Your AI trading copilot for Solana</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">SolPilot</p>
+        <h1>Your AI trading copilot for Solana.</h1>
+        <p class="subtitle">A dark-futuristic Telegram bot prototype for meme coin and token trading insights. Try a live signal below.</p>
+      </div>
+      <div class="hero-card">
+        <p><strong>Brand voice:</strong> Professional. Concise. Smart. Helpful.</p>
+        <p><strong>Future vision:</strong> multi-user, advanced agents, portfolio intelligence, copy trading.</p>
+      </div>
+    </header>
+
+    <section class="demo-panel">
+      <div class="demo-card">
+        <h2>Live signal demo</h2>
+        <p>Enter a Solana token symbol to generate a concise AI market insight.</p>
+        <form id="signal-form">
+          <label for="symbol">Token symbol</label>
+          <input id="symbol" name="symbol" placeholder="SOL" autocomplete="off" />
+          <button type="submit">Generate signal</button>
+        </form>
+        <div id="response" class="response-card">
+          <p class="placeholder">Responses appear here.</p>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <h3>How it works</h3>
+        <ul>
+          <li>Uses OpenAI to generate a short, risk-aware trading insight.</li>
+          <li>Built as a Telegram bot with Solana market integration planned.</li>
+          <li>Designed for clear risk language and fast AI-native messaging.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

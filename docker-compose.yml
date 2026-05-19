@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database Service
+  db:
+    image: postgres:15-alpine
+    container_name: solpilot_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-solpilot_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-solpilot_secure_pass}
+      POSTGRES_DB: ${DB_NAME:-solpilot_prod}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Redis Caching & Queue Service
+  redis:
+    image: redis:7-alpine
+    container_name: solpilot_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. Main SolPilot Application (Worker dispatcher & Web controller)
+  solpilot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: solpilot_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+      - DATABASE_URL=postgresql://${DB_USER:-solpilot_user}:${DB_PASSWORD:-solpilot_secure_pass}@db:5432/${DB_NAME:-solpilot_prod}?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
