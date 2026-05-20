@@ -24,6 +24,19 @@ export function createBot(): Telegraf<MyContext> {
   logger.info("Initializing Telegraf Bot...");
   const bot = new Telegraf<MyContext>(config.botToken);
 
+  // Register commands list to create the persistent menu button next to the chat bar
+  bot.telegram.setMyCommands([
+    { command: "menu", description: "Open SolPilot control dashboard 🎮" },
+    { command: "signal", description: "Get AI-driven market signal analysis 📈" },
+    { command: "portfolio", description: "View your paper wallets & balance 💼" },
+    { command: "watchlist", description: "Manage your token watchlist 👁️" },
+    { command: "papertrade", description: "Execute mock buy/sell trades 📈" },
+    { command: "settings", description: "Adjust trading risk parameters ⚙️" },
+    { command: "status", description: "Check Solana & database health 🔌" },
+    { command: "restart", description: "Reboot the bot process securely 🔄" },
+    { command: "help", description: "View command usage & guide ❓" }
+  ]).catch(err => logger.error("Failed to set Telegram command list:", err));
+
   // 1. Hook up session middleware
   bot.use(session());
 
