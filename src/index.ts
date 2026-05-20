@@ -16,6 +16,11 @@ const WORKER_TYPE = process.env.WORKER_TYPE;
 async function bootstrap() {
   logger.info(`Starting SolPilot process. Worker Role: ${WORKER_TYPE || "ALL-IN-ONE (Development)"}`);
 
+  if (!WORKER_TYPE || WORKER_TYPE === "web") {
+    // Start Express dashboard and metrics server to satisfy Render port binding
+    await import("./server");
+  }
+
   if (!WORKER_TYPE || WORKER_TYPE === "bot") {
     // 2. Instantiate and launch the Telegram bot
     const bot = createBot();
