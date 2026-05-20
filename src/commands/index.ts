@@ -12,6 +12,8 @@ import { getChainHealth } from "../solana/solanaUtils";
 import { brand } from "../branding";
 import { logger } from "../utils/logger";
 import { executePaperBuy } from "../trading/paperTrading";
+import { handleDeposit } from "./deposit";
+import { handleAgent } from "./agent";
 
 
 /**
@@ -27,6 +29,8 @@ export function registerCommands(bot: Telegraf<any>) {
   bot.command("papertrade", handlePaperTrade);
   bot.command("settings", handleSettings);
   bot.command("risk", handleRisk);
+  bot.command("deposit", handleDeposit);
+  bot.command("agent", handleAgent);
   bot.command("status", handleStatus);
 
   // Restart command
