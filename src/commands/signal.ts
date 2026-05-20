@@ -1,6 +1,7 @@
 import { Context } from "telegraf";
 import { fetchTokenPairDetails, analyzeTokenRisk, fetchMultipleTokenPairs } from "../market/dexScreener";
 import { buildSignalExplanation } from "../ai/aiEngine";
+import { getRiskProfile } from "../services/riskService";
 import { brand } from "../branding";
 import { logger } from "../utils/logger";
 
@@ -64,17 +65,22 @@ export async function showRecommendations(ctx: Context) {
           const priceUsd = pair.priceUsd ? `$${parseFloat(pair.priceUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}` : "N/A";
           const change24h = pair.priceChange?.h24 !== undefined ? `${pair.priceChange.h24 >= 0 ? "+" : ""}${pair.priceChange.h24}%` : "N/A";
 
-          let riskLabel = "🟢 Low Risk";
-          let aiStatus = "🟢 Buy";
+          const profile = await getRiskProfile((ctx.from?.id || "").toString());
+          const mode = profile.antiRugEnabled ? "SAFE" : "DEGEN";
+
+          let riskLabel = mode === "DEGEN" ? "🔥 DEGEN" : "🟢 Low Risk";
+          let aiStatus = mode === "DEGEN" ? "🎯 Hunt" : "🟢 Buy";
+
           if (risk.isRugPotential) {
-            riskLabel = "🔴 HIGH RISK";
-            aiStatus = "🔴 Hold";
+            riskLabel = mode === "DEGEN" ? "⚠️ HIGH RISK (DEGEN ACCEPTED)" : "🔴 HIGH RISK";
+            aiStatus = mode === "DEGEN" ? "🎯 Snipe (High Risk)" : "🔴 Hold";
           } else if (risk.score > 25) {
-            riskLabel = "🟡 Moderate";
-            aiStatus = "🟡 Hold/Volatile";
+            riskLabel = mode === "DEGEN" ? "🟠 Volatile (DEGEN)" : "🟡 Moderate";
+            aiStatus = mode === "DEGEN" ? "🎯 Watch + Entry" : "🟡 Hold/Volatile";
           } else if (sym === "SOL" || sym === "JUP" || sym === "PYTH") {
-            aiStatus = "🟢 Strong Buy";
+            aiStatus = mode === "DEGEN" ? "💢 Aggressive" : "🟢 Strong Buy";
           }
+
 
           messageText += `• *${sym}*: ${priceUsd} (${change24h}) | ${riskLabel} | *${aiStatus}*\n`;
         } else {
@@ -149,7 +155,9 @@ export async function analyzeAndReplySignal(ctx: Context, symbol: string) {
     }
 
     const risk = analyzeTokenRisk(pair);
-    const aiCommentary = await buildSignalExplanation(symbol, pair, risk);
+    const profile = await getRiskProfile((ctx.from?.id || "").toString());
+    const mode = profile.antiRugEnabled ? "SAFE" : "DEGEN";
+    const aiCommentary = await buildSignalExplanation(symbol, pair, risk, mode);
 
     const priceUsd = pair.priceUsd ? `$${parseFloat(pair.priceUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}` : "N/A";
     const change24h = pair.priceChange?.h24 !== undefined ? `${pair.priceChange.h24 >= 0 ? "+" : ""}${pair.priceChange.h24}%` : "N/A";

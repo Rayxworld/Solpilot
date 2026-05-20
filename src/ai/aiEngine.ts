@@ -14,7 +14,8 @@ const openai = new OpenAI({
 export async function buildSignalExplanation(
   symbol: string,
   pair: TokenPair | null,
-  risk: RiskAnalysis | null
+  risk: RiskAnalysis | null,
+  mode: "SAFE" | "DEGEN" = "SAFE"
 ): Promise<string> {
   let contextInfo = "";
 
@@ -46,10 +47,14 @@ Safety Heuristic Profile:
     contextInfo = `No live token pair found for ${symbol} on Solana. Displaying general ecosystem indicators.`;
   }
 
-  const prompt = `
+const prompt = `
 You are SolPilot, a highly professional backend architect, crypto analyst, and AI copilot for Solana. Your job is to explain the market situation for the token "${symbol.toUpperCase()}" based on real-time data.
 
 ${contextInfo}
+
+MODE INSTRUCTIONS (${mode}):
+- If mode is DEGEN, you should be more aggressive in framing: focus on momentum/tempo, acknowledge higher rug risk clearly, and describe what would invalidate the idea.
+- If mode is SAFE, you should be more conservative: focus on downside, uncertainty, and risk reduction.
 
 CRITICAL DIRECTIVES:
 1. Speak with professional humility. NEVER guarantee profits, state that a trade is a "guaranteed win", or use hype/FOMO-inducing statements.
