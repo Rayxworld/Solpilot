@@ -49,27 +49,55 @@ export interface RiskAnalysis {
   isRugPotential: boolean;
 }
 
+const COMMON_MINTS: { [key: string]: string } = {
+  SOL: "So11111111111111111111111111111111111111112",
+  WSOL: "So11111111111111111111111111111111111111112",
+  USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
+};
+
 /**
  * Service to fetch market data from DexScreener API
  */
 export async function fetchTokenPairDetails(symbolOrAddress: string): Promise<TokenPair | null> {
-  const url = `https://api.dexscreener.com/latest/dex/search/?q=${encodeURIComponent(symbolOrAddress)}`;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const data = await response.json();
-    if (!data.pairs || data.pairs.length === 0) return null;
+  const query = symbolOrAddress.trim();
+  const queryUpper = query.toUpperCase();
+  const resolvedQuery = COMMON_MINTS[queryUpper] || query;
 
-    // Filter for Solana pairs where the symbol or address matches the query case-insensitively
-    const queryUpper = symbolOrAddress.toUpperCase();
+  const url = `https://api.dexscreener.com/latest/dex/search/?q=${encodeURIComponent(resolvedQuery)}`;
+  try {
+    logger.info(`Fetching market data from DexScreener for query: "${query}" (resolved to: "${resolvedQuery}")`);
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Accept-Language": "en-US,en;q=0.9"
+      }
+    });
+
+    if (!response.ok) {
+      logger.warn(`DexScreener API returned non-OK status: ${response.status} ${response.statusText} for query: ${query}`);
+      return null;
+    }
+
+    const data: any = await response.json();
+    if (!data.pairs || data.pairs.length === 0) {
+      logger.info(`DexScreener returned 0 pairs for query: ${query}`);
+      return null;
+    }
+
+    // Filter for Solana pairs where the symbol or address matches the query or resolved address case-insensitively
     const solanaPairs = data.pairs.filter((p: any) => {
       if (p.chainId !== "solana") return false;
       const baseSymbol = p.baseToken?.symbol?.toUpperCase();
       const baseAddress = p.baseToken?.address?.toUpperCase();
-      return baseSymbol === queryUpper || baseAddress === queryUpper;
+      return baseSymbol === queryUpper || baseAddress === queryUpper || baseAddress === resolvedQuery.toUpperCase();
     });
 
-    if (solanaPairs.length === 0) return null;
+    if (solanaPairs.length === 0) {
+      logger.info(`DexScreener found ${data.pairs.length} pairs, but 0 matched Solana chain and symbol/address: ${query}`);
+      return null;
+    }
 
     // Sort by liquidity USD descending to prioritize the main trading pool
     solanaPairs.sort((a: any, b: any) => {
@@ -78,6 +106,7 @@ export async function fetchTokenPairDetails(symbolOrAddress: string): Promise<To
       return liqB - liqA;
     });
 
+    logger.info(`Successfully resolved primary Solana pair for ${query} with liquidity: $${solanaPairs[0].liquidity?.usd || 0}`);
     return solanaPairs[0];
   } catch (error) {
     logger.error("fetchTokenPairDetails error:", error);
