@@ -122,8 +122,26 @@ app.get("/metrics", async (req, res) => {
 });
 
 // ==========================================
-// 5. Internal Admin Dashboard System
+// 5. Internal Admin Dashboard System (Secured)
 // ==========================================
+import crypto from "crypto";
+
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || (() => {
+  const token = crypto.randomBytes(16).toString("hex");
+  logger.info(`[SECURITY] No ADMIN_TOKEN environment variable detected. Generated fallback runtime token: ${token}`);
+  return token;
+})();
+
+const adminAuthMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const token = req.headers["x-admin-token"] || req.query.token;
+  if (!token || token !== ADMIN_TOKEN) {
+    logger.warn(`Unauthorized access attempt to admin endpoint: ${req.path} from IP: ${req.ip}`);
+    return res.status(401).json({ error: "Unauthorized access to admin console." });
+  }
+  next();
+};
+
+app.use("/admin", adminAuthMiddleware);
 
 // Test DexScreener Integration
 app.get("/admin/test-dex", async (req, res) => {
