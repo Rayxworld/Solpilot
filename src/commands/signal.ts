@@ -1,5 +1,5 @@
 import { Context } from "telegraf";
-import { fetchTokenPairDetails, analyzeTokenRisk } from "../market/dexScreener";
+import { fetchTokenPairDetails, analyzeTokenRisk, fetchMultipleTokenPairs } from "../market/dexScreener";
 import { buildSignalExplanation } from "../ai/aiEngine";
 import { brand } from "../branding";
 import { logger } from "../utils/logger";
@@ -36,7 +36,7 @@ export async function showRecommendations(ctx: Context) {
     const loadingMsg = await ctx.reply("🔥 Fetching active market signals and compiling Solana buy recommendations...");
 
     const symbols = ["SOL", "JUP", "RAY", "JTO", "WIF", "BONK", "POPCAT", "BOME", "PYTH", "RENDER"];
-    const pairs = await Promise.all(symbols.map(sym => fetchTokenPairDetails(sym)));
+    const pairsRecord = await fetchMultipleTokenPairs(symbols);
 
     let messageText = `🤖 *SolPilot Active Solana AI Signals & Buy Recommendations* 📈\n\n` +
       `Below are the most active and trending tokens in the Solana ecosystem, grouped by sector. *Tap any token button below to view its live AI Commentary & rug audit:*\n\n`;
@@ -49,9 +49,9 @@ export async function showRecommendations(ctx: Context) {
     ];
 
     const pairMap = new Map<string, any>();
-    for (let i = 0; i < symbols.length; i++) {
-      if (pairs[i]) {
-        pairMap.set(symbols[i], pairs[i]);
+    for (const sym of symbols) {
+      if (pairsRecord[sym]) {
+        pairMap.set(sym, pairsRecord[sym]);
       }
     }
 

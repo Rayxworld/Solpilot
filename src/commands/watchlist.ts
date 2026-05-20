@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { prisma, ensureUser } from "../database/prismaDb";
-import { fetchTokenPairDetails } from "../market/dexScreener";
+import { fetchTokenPairDetails, fetchMultipleTokenPairs } from "../market/dexScreener";
 import { logger } from "../utils/logger";
 
 export async function handleWatchlist(ctx: Context) {
@@ -73,9 +73,12 @@ export async function handleWatchlist(ctx: Context) {
       return;
     }
 
+    const symbols = rows.map(r => r.tokenSymbol);
+    const pairsRecord = await fetchMultipleTokenPairs(symbols);
+
     let listText = "*Your SolPilot Watchlist:* 👁️\n\n";
     for (const r of rows) {
-      const pair = await fetchTokenPairDetails(r.tokenSymbol);
+      const pair = pairsRecord[r.tokenSymbol];
       const price = pair?.priceUsd ? `$${parseFloat(pair.priceUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : "N/A";
       const change = pair?.priceChange?.h24 !== undefined ? `${pair.priceChange.h24 >= 0 ? "+" : ""}${pair.priceChange.h24}%` : "N/A";
       listText += `• *${r.tokenSymbol}*: ${price} (${change} 24h)\n`;

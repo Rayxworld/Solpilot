@@ -49,7 +49,7 @@ export interface RiskAnalysis {
   isRugPotential: boolean;
 }
 
-const COMMON_MINTS: { [key: string]: string } = {
+export const COMMON_MINTS: { [key: string]: string } = {
   SOL: "So11111111111111111111111111111111111111112",
   WSOL: "So11111111111111111111111111111111111111112",
   USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
@@ -64,6 +64,72 @@ const COMMON_MINTS: { [key: string]: string } = {
   PYTH: "HZ1JFE5tRs1W95GgSS35mAGtH5mHwmdgAMaseYkdzYuY",
   RENDER: "rndrizKT3MK1iimx9xgKFBmqS39DCHrdsMhc1gMrc48"
 };
+
+/**
+ * Service to fetch multiple market data details from DexScreener API in a single batch request
+ */
+export async function fetchMultipleTokenPairs(symbolsOrAddresses: string[]): Promise<Record<string, TokenPair>> {
+  if (symbolsOrAddresses.length === 0) return {};
+
+  const resolvedAddresses = symbolsOrAddresses.map(sym => {
+    const symUpper = sym.trim().toUpperCase();
+    return COMMON_MINTS[symUpper] || sym.trim();
+  });
+
+  const uniqueAddresses = Array.from(new Set(resolvedAddresses));
+  const url = `https://api.dexscreener.com/latest/dex/tokens/${uniqueAddresses.join(",")}`;
+
+  const results: Record<string, TokenPair> = {};
+
+  try {
+    logger.info(`Fetching batch market data from DexScreener for ${uniqueAddresses.length} addresses`);
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Accept-Language": "en-US,en;q=0.9"
+      }
+    });
+
+    if (!response.ok) {
+      logger.warn(`DexScreener API returned non-OK status: ${response.status} ${response.statusText} for batch`);
+      return results;
+    }
+
+    const data: any = await response.json();
+    if (!data.pairs || data.pairs.length === 0) {
+      logger.info(`DexScreener batch endpoint returned 0 pairs`);
+      return results;
+    }
+
+    // For each query symbol, map it to the matching pair from the response
+    for (let i = 0; i < symbolsOrAddresses.length; i++) {
+      const originalInput = symbolsOrAddresses[i];
+      const resolvedAddress = resolvedAddresses[i].toUpperCase();
+
+      const matchingPairs = data.pairs.filter((p: any) => {
+        if (p.chainId !== "solana") return false;
+        const baseAddress = p.baseToken?.address?.toUpperCase();
+        return baseAddress === resolvedAddress;
+      });
+
+      if (matchingPairs.length > 0) {
+        // Sort by liquidity USD descending
+        matchingPairs.sort((a: any, b: any) => {
+          const liqA = a.liquidity?.usd || 0;
+          const liqB = b.liquidity?.usd || 0;
+          return liqB - liqA;
+        });
+        results[originalInput] = matchingPairs[0];
+      }
+    }
+
+    return results;
+  } catch (error) {
+    logger.error("fetchMultipleTokenPairs error:", error);
+    return results;
+  }
+}
 
 /**
  * Service to fetch market data from DexScreener API
