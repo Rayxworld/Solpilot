@@ -9,6 +9,7 @@ import { handleSettings } from "../commands/settings";
 import { handleHelp } from "../commands/help";
 import { handleAgent } from "../commands/agent";
 import { handleDeposit } from "../commands/deposit";
+import { handleVerify } from "../commands/verify";
 import { logger } from "../utils/logger";
 
 interface MySession {
@@ -28,13 +29,15 @@ export function createBot(): Telegraf<MyContext> {
 
   bot.telegram.setMyCommands([
     { command: "menu", description: "Open SolPilot control dashboard" },
-    { command: "agent", description: "Start or inspect the autonomous paper agent" },
-    { command: "deposit", description: "View deposit and live-agent access" },
-    { command: "signal", description: "Get AI-driven market signal analysis" },
-    { command: "portfolio", description: "View your paper wallet and positions" },
-    { command: "watchlist", description: "Manage your token watchlist" },
-    { command: "papertrade", description: "Execute simulated buy/sell trades" },
-    { command: "settings", description: "Adjust trading risk parameters" },
+    { command: "go", description: "Start the paper agent with default rules" },
+    { command: "off", description: "Stop the active agent" },
+    { command: "v", description: "Verify your Telegram account" },
+    { command: "s", description: "Open AI signal deck" },
+    { command: "me", description: "View portfolio" },
+    { command: "fund", description: "View deposit and live-agent access" },
+    { command: "rules", description: "Adjust trading risk settings" },
+    { command: "agent", description: "Advanced agent controls" },
+    { command: "trade", description: "Manual simulated trades" },
     { command: "status", description: "Check Solana and database health" },
     { command: "help", description: "View command usage and guide" }
   ]).catch(err => logger.error("Failed to set Telegram command list:", err));
@@ -91,6 +94,14 @@ export function createBot(): Telegraf<MyContext> {
     }
   });
 
+  bot.hears("Verify Account", async (ctx) => {
+    try {
+      await handleVerify(ctx);
+    } catch (error) {
+      logger.error("Hears 'Verify Account' error:", error);
+    }
+  });
+
   bot.hears("Help", async (ctx) => {
     try {
       await handleHelp(ctx);
@@ -116,4 +127,3 @@ export function createBot(): Telegraf<MyContext> {
 
   return bot;
 }
-

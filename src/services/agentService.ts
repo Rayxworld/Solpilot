@@ -1,7 +1,7 @@
 import { fetchMultipleTokenPairs, analyzeTokenRisk, TokenPair } from "../market/dexScreener";
 import { getRiskProfile } from "./riskService";
 import { executePaperBuy } from "../trading/paperTrading";
-import { createAuditLog } from "../database/prismaDb";
+import { createAuditLog, prisma } from "../database/prismaDb";
 import { logger } from "../utils/logger";
 
 export type AgentMode = "PAPER" | "LIVE_LOCKED";
@@ -16,6 +16,7 @@ export interface AgentSession {
   startedAt: Date;
   lastScanAt?: Date;
   lastAction?: string;
+  nextTradeAt?: Date;
   timer?: NodeJS.Timeout;
 }
 
@@ -68,6 +69,29 @@ function buildReason(pair: TokenPair, riskScore: number): string {
   return `liq $${Math.round(liquidity).toLocaleString()}, 1h vol $${Math.round(volume1h).toLocaleString()}, 5m ${change5m >= 0 ? "+" : ""}${change5m}%, risk ${riskScore}/100`;
 }
 
+async function getCooldownState(userId: string): Promise<{ active: boolean; remainingSecs: number; nextTradeAt?: Date }> {
+  const profile = await getRiskProfile(userId);
+  if (profile.cooldownMinutes <= 0) return { active: false, remainingSecs: 0 };
+
+  const lastTrade = await prisma.paperTrade.findFirst({
+    where: { userId },
+    orderBy: { openedAt: "desc" }
+  });
+
+  if (!lastTrade) return { active: false, remainingSecs: 0 };
+
+  const cooldownMs = profile.cooldownMinutes * 60 * 1000;
+  const nextTradeAt = new Date(lastTrade.openedAt.getTime() + cooldownMs);
+  const remainingMs = nextTradeAt.getTime() - Date.now();
+
+  if (remainingMs <= 0) return { active: false, remainingSecs: 0 };
+  return {
+    active: true,
+    remainingSecs: Math.ceil(remainingMs / 1000),
+    nextTradeAt
+  };
+}
+
 export async function findAgentCandidates(userId: string, universe = DEFAULT_UNIVERSE): Promise<AgentCandidate[]> {
   const profile = await getRiskProfile(userId);
   const pairs = await fetchMultipleTokenPairs(universe);
@@ -106,6 +130,14 @@ async function runAgentTick(userId: string): Promise<void> {
   session.lastScanAt = new Date();
 
   try {
+    const cooldown = await getCooldownState(userId);
+    if (cooldown.active) {
+      session.nextTradeAt = cooldown.nextTradeAt;
+      session.lastAction = `Cooling down after the last paper entry. Next scan can trade in ${cooldown.remainingSecs} seconds.`;
+      return;
+    }
+
+    session.nextTradeAt = undefined;
     const profile = await getRiskProfile(userId);
     const candidates = await findAgentCandidates(userId, session.universe);
     const best = candidates[0];
@@ -132,6 +164,14 @@ async function runAgentTick(userId: string): Promise<void> {
 
 export async function startPaperAgent(userId: string, budgetUsd?: number): Promise<AgentSession> {
   const existing = sessions.get(userId);
+  if (existing?.active) {
+    if (budgetUsd && !Number.isNaN(budgetUsd) && budgetUsd > 0) {
+      existing.budgetUsd = clampBudget(budgetUsd);
+    }
+    existing.lastAction = "Agent is already active. Use /agent stop before restarting it.";
+    return existing;
+  }
+
   if (existing?.timer) clearInterval(existing.timer);
 
   const session: AgentSession = {
@@ -180,7 +220,7 @@ export function formatAgentStatus(session: AgentSession | null): string {
       "Status: *OFFLINE*",
       "Mode: *Paper strategy agent*",
       "",
-      "Start with `/agent start 100` to let SolPilot scan, size, and paper-trade from a $100 strategy budget.",
+      "Start with `/go` for the default $100 paper budget, or `/agent start 250` for a custom budget.",
       "Live swaps remain locked until wallet custody and execution controls are enabled."
     ].join("\n");
   }
@@ -194,8 +234,10 @@ export function formatAgentStatus(session: AgentSession | null): string {
     `Per-entry size: *${session.perTradePct}%* of budget, capped by /settings size`,
     `Universe: *${session.universe.join(", ")}*`,
     `Last scan: *${session.lastScanAt ? session.lastScanAt.toLocaleString() : "Pending"}*`,
+    session.nextTradeAt ? `Next allowed entry: *${session.nextTradeAt.toLocaleString()}*` : "",
     "",
-    `Last action: ${session.lastAction || "No action yet."}`
-  ].join("\n");
+    `Last action: ${session.lastAction || "No action yet."}`,
+    "",
+    "Shortcuts: `/off` stops the agent, `/me` opens portfolio, `/rules` updates risk settings."
+  ].filter(Boolean).join("\n");
 }
-

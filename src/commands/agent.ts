@@ -2,6 +2,7 @@ import { Context } from "telegraf";
 import { ensureUser } from "../database/prismaDb";
 import { formatAgentStatus, getAgentSession, startPaperAgent, stopAgent } from "../services/agentService";
 import { getRiskProfile } from "../services/riskService";
+import { requireVerification } from "../services/verificationService";
 import { logger } from "../utils/logger";
 
 /**
@@ -14,12 +15,13 @@ export async function handleAgent(ctx: Context) {
 
     await ensureUser(userId, ctx.from?.username);
 
-    const text = (ctx.message as any)?.text || "";
-    const parts = text.split(" ").slice(1);
+    const text = ((ctx.message as any)?.text || "").trim();
+    const parts = text.startsWith("/") ? text.split(/\s+/).slice(1) : [];
     const action = (parts[0] || "status").toLowerCase();
     const budget = parts[1] ? parseFloat(parts[1]) : undefined;
 
     if (action === "start") {
+      if (!(await requireVerification(ctx))) return;
       await ctx.reply(
         "Starting SolPilot Agent in paper mode. It will scan the market, apply your risk rules, and simulate entries automatically."
       );
@@ -29,6 +31,7 @@ export async function handleAgent(ctx: Context) {
     }
 
     if (action === "stop") {
+      if (!(await requireVerification(ctx))) return;
       const session = await stopAgent(userId);
       await ctx.replyWithMarkdown(formatAgentStatus(session), agentKeyboard());
       return;
@@ -77,4 +80,3 @@ export function agentKeyboard() {
     }
   };
 }
-

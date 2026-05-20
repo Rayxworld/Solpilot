@@ -1,5 +1,6 @@
 import { Context } from "telegraf";
 import { ensureUser, createAuditLog } from "../database/prismaDb";
+import { requireVerification } from "../services/verificationService";
 import { logger } from "../utils/logger";
 
 /**
@@ -15,9 +16,10 @@ export async function handleDeposit(ctx: Context) {
     if (!userId) return;
 
     await ensureUser(userId, ctx.from?.username);
+    if (!(await requireVerification(ctx))) return;
 
-    const text = (ctx.message as any)?.text || "";
-    const parts = text.split(" ").slice(1);
+    const text = ((ctx.message as any)?.text || "").trim();
+    const parts = text.startsWith("/deposit") ? text.split(/\s+/).slice(1) : [];
     const amountStr = parts[0];
     const amount = amountStr ? parseFloat(amountStr) : undefined;
 

@@ -50,19 +50,10 @@ export interface RiskAnalysis {
 }
 
 export const COMMON_MINTS: { [key: string]: string } = {
-  SOL: "7jQrhxQYYkEvRuLHREVV3mXto4xYzbVroxdLxQsv12eC",
-  WSOL: "7jQrhxQYYkEvRuLHREVV3mXto4xYzbVroxdLxQsv12eC",
+  SOL: "So11111111111111111111111111111111111111112",
+  WSOL: "So11111111111111111111111111111111111111112",
   USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-  USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-  WIF: "21AErpiB8uSb94oQKRcwuHqyHF93njAxBSbdUrpupump",
-  BONK: "56Lc5By6bBmewoLZLy2QWs9L9nd8aQHFZrYCSaX5KDCm",
-  JUP: "3pVdPjEemBKNTXMMEHv2rV7d9YBkPhhQoBr4As3BLh6Q",
-  RAY: "8k3vk24p8X9LMWQE8CouLtLryUoC5p7Emh2Xd7wwQnWa",
-  JTO: "HthuSHNDf7WYWAMqYGC3WFyE5qMQW7drCcC4BqVnHwwR",
-  POPCAT: "Cpnm1fZUjm48M54Gaae2kwQfMgHX9NZHozhyVb55rfyD",
-  BOME: "9AXr9RLcaicvTUj87oTQgyVooNiKUX9J8YC6r3AkDH9z",
-  PYTH: "DFf5TTfDnX8MB28WKvZxnMfiDNaVAS3sjagHg6Bb1ayW",
-  RENDER: "AirJR96SJXBvW8PgxpgcRb1qZiHnysqt3KdZMRGJWmvf"
+  USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
 };
 
 /**
@@ -99,6 +90,10 @@ export async function fetchMultipleTokenPairs(symbolsOrAddresses: string[]): Pro
     const data: any = await response.json();
     if (!data.pairs || data.pairs.length === 0) {
       logger.info(`DexScreener batch endpoint returned 0 pairs`);
+      for (const input of symbolsOrAddresses) {
+        const pair = await fetchTokenPairDetails(input);
+        if (pair) results[input] = pair;
+      }
       return results;
     }
 
@@ -124,9 +119,20 @@ export async function fetchMultipleTokenPairs(symbolsOrAddresses: string[]): Pro
       }
     }
 
+    const missingInputs = symbolsOrAddresses.filter(input => !results[input]);
+    for (const input of missingInputs) {
+      const pair = await fetchTokenPairDetails(input);
+      if (pair) results[input] = pair;
+    }
+
     return results;
   } catch (error) {
     logger.error("fetchMultipleTokenPairs error:", error);
+    for (const input of symbolsOrAddresses) {
+      if (results[input]) continue;
+      const pair = await fetchTokenPairDetails(input);
+      if (pair) results[input] = pair;
+    }
     return results;
   }
 }
@@ -139,9 +145,9 @@ export async function fetchTokenPairDetails(symbolOrAddress: string): Promise<To
   const queryUpper = query.toUpperCase();
   const resolvedQuery = COMMON_MINTS[queryUpper] || query;
 
-  const url = `https://api.dexscreener.com/latest/dex/search/?q=${encodeURIComponent(resolvedQuery)}`;
+  const url = `https://api.dexscreener.com/latest/dex/search/?q=${encodeURIComponent(query)}`;
   try {
-    logger.info(`Fetching market data from DexScreener for query: "${query}" (resolved to: "${resolvedQuery}")`);
+    logger.info(`Fetching market data from DexScreener for query: "${query}"`);
     const response = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

@@ -8,12 +8,14 @@ import { handlePaperTrade } from "./papertrade";
 import { handleSettings } from "./settings";
 import { handleRisk } from "./risk";
 import { handleStatus } from "./status";
+import { confirmVerification, handleVerify } from "./verify";
 import { logger } from "../utils/logger";
 import { executePaperBuy } from "../trading/paperTrading";
 import { handleDeposit } from "./deposit";
 import { agentKeyboard, handleAgent } from "./agent";
 import { formatAgentStatus, getAgentSession, startPaperAgent, stopAgent } from "../services/agentService";
 import { getRiskProfile } from "../services/riskService";
+import { requireVerification } from "../services/verificationService";
 
 function mainKeyboard() {
   return {
@@ -28,6 +30,9 @@ function mainKeyboard() {
       ],
       [
         { text: "Deposit / Live Access" },
+        { text: "Verify Account" }
+      ],
+      [
         { text: "Help" }
       ]
     ],
@@ -59,13 +64,28 @@ export function registerCommands(bot: Telegraf<any>) {
   bot.start(handleStart);
   bot.help(handleHelp);
   bot.command("signal", handleSignal);
+  bot.command("s", handleSignal);
   bot.command("portfolio", handlePortfolio);
+  bot.command("me", handlePortfolio);
   bot.command("watchlist", handleWatchlist);
   bot.command("papertrade", handlePaperTrade);
+  bot.command("trade", handlePaperTrade);
   bot.command("settings", handleSettings);
+  bot.command("rules", handleSettings);
   bot.command("risk", handleRisk);
   bot.command("deposit", handleDeposit);
+  bot.command("fund", handleDeposit);
   bot.command("agent", handleAgent);
+  bot.command("go", async (ctx) => {
+    (ctx as any).message.text = "/agent start 100";
+    await handleAgent(ctx);
+  });
+  bot.command("off", async (ctx) => {
+    (ctx as any).message.text = "/agent stop";
+    await handleAgent(ctx);
+  });
+  bot.command("verify", handleVerify);
+  bot.command("v", handleVerify);
   bot.command("status", handleStatus);
 
   bot.command("restart", async (ctx) => {
@@ -115,9 +135,15 @@ export function registerCommands(bot: Telegraf<any>) {
       } else if (data === "action_custom_ticker") {
         await ctx.reply("Enter a custom Solana token ticker or contract address, for example BONK or WIF:");
         ctx.session = { awaitingSymbol: true };
+      } else if (data === "verify_user") {
+        await confirmVerification(ctx);
       } else if (data === "agent_start") {
         const userId = ctx.from?.id.toString();
         if (userId) {
+          if (!(await requireVerification(ctx))) {
+            await ctx.answerCbQuery("Verification required");
+            return;
+          }
           await ctx.reply("Starting SolPilot Agent in paper mode with a $100 strategy budget.");
           const session = await startPaperAgent(userId, 100);
           await ctx.replyWithMarkdown(formatAgentStatus(session), agentKeyboard());
@@ -125,6 +151,10 @@ export function registerCommands(bot: Telegraf<any>) {
       } else if (data === "agent_stop") {
         const userId = ctx.from?.id.toString();
         if (userId) {
+          if (!(await requireVerification(ctx))) {
+            await ctx.answerCbQuery("Verification required");
+            return;
+          }
           const session = await stopAgent(userId);
           await ctx.replyWithMarkdown(formatAgentStatus(session), agentKeyboard());
         }
@@ -182,4 +212,3 @@ export {
   handleRisk,
   handleStatus
 };
-

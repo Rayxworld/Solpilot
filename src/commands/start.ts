@@ -25,6 +25,9 @@ export async function handleStart(ctx: Context) {
           ],
           [
             { text: "Deposit / Live Access" },
+            { text: "Verify Account" }
+          ],
+          [
             { text: "Help" }
           ]
         ],
@@ -33,4 +36,3 @@ export async function handleStart(ctx: Context) {
     }
   );
 }
-
