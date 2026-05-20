@@ -33,59 +33,76 @@ export async function handleSignal(ctx: Context) {
 export async function showRecommendations(ctx: Context) {
   try {
     // Send a temporary loading message to keep the user engaged
-    const loadingMsg = await ctx.reply("🔥 Fetching active market signals and compiling AI-curated buy recommendations...");
+    const loadingMsg = await ctx.reply("🔥 Fetching active market signals and compiling Solana buy recommendations...");
 
-    const symbols = ["SOL", "JUP", "WIF", "BONK"];
+    const symbols = ["SOL", "JUP", "RAY", "JTO", "WIF", "BONK", "POPCAT", "BOME", "PYTH", "RENDER"];
     const pairs = await Promise.all(symbols.map(sym => fetchTokenPairDetails(sym)));
 
-    let messageText = `🤖 *SolPilot Active AI Signals & Buy Recommendations* 📈\n\n` +
-      `Below are trending Solana tokens curated based on live market liquidity, volume, and safety. *Tap any token button below to view its full AI Commentary & rug audit, or type a custom ticker to analyze:*\n\n`;
+    let messageText = `🤖 *SolPilot Active Solana AI Signals & Buy Recommendations* 📈\n\n` +
+      `Below are the most active and trending tokens in the Solana ecosystem, grouped by sector. *Tap any token button below to view its live AI Commentary & rug audit:*\n\n`;
 
+    // Grouping tokens
+    const categories = [
+      { name: "⚡ L1 & Core DeFi", syms: ["SOL", "JUP", "RAY", "JTO"] },
+      { name: "🔥 Solana Meme Coins", syms: ["WIF", "BONK", "POPCAT", "BOME"] },
+      { name: "🌐 Oracle & DePIN Infrastructure", syms: ["PYTH", "RENDER"] }
+    ];
+
+    const pairMap = new Map<string, any>();
     for (let i = 0; i < symbols.length; i++) {
-      const symbol = symbols[i];
-      const pair = pairs[i];
-
-      if (pair) {
-        const risk = analyzeTokenRisk(pair);
-        const priceUsd = pair.priceUsd ? `$${parseFloat(pair.priceUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}` : "N/A";
-        const change24h = pair.priceChange?.h24 !== undefined ? `${pair.priceChange.h24 >= 0 ? "+" : ""}${pair.priceChange.h24}%` : "N/A";
-
-        let riskLabel = "🟢 Low Risk";
-        let aiStatus = "🟢 Strong Active Buy";
-        if (risk.isRugPotential) {
-          riskLabel = "🔴 HIGH RUG RISK";
-          aiStatus = "🔴 Do Not Buy (High Risk)";
-        } else if (risk.score > 25) {
-          riskLabel = "🟡 Moderate Risk";
-          aiStatus = "🟡 Hold / High Volatility";
-        } else if (symbol === "WIF") {
-          aiStatus = "🟢 Active Buy Signal";
-        } else if (symbol === "JUP") {
-          aiStatus = "🟢 Accumulate Signal";
-        }
-
-        messageText += `🔥 *${symbol} / USDC* (${pair.baseToken.name})\n` +
-          `• Price: *${priceUsd}* | 24h Change: *${change24h}*\n` +
-          `• Security: *${riskLabel}* (Score: ${risk.score}/100)\n` +
-          `• AI Recommendation: *${aiStatus}*\n\n`;
-      } else {
-        messageText += `🔥 *${symbol} / USDC*\n` +
-          `• Price: *N/A* (Temporary connection issue)\n` +
-          `• AI Recommendation: *🟢 Strong Buy (Safe)*\n\n`;
+      if (pairs[i]) {
+        pairMap.set(symbols[i], pairs[i]);
       }
     }
 
+    for (const cat of categories) {
+      messageText += `*${cat.name}:*\n`;
+      for (const sym of cat.syms) {
+        const pair = pairMap.get(sym);
+        if (pair) {
+          const risk = analyzeTokenRisk(pair);
+          const priceUsd = pair.priceUsd ? `$${parseFloat(pair.priceUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}` : "N/A";
+          const change24h = pair.priceChange?.h24 !== undefined ? `${pair.priceChange.h24 >= 0 ? "+" : ""}${pair.priceChange.h24}%` : "N/A";
+
+          let riskLabel = "🟢 Low Risk";
+          let aiStatus = "🟢 Buy";
+          if (risk.isRugPotential) {
+            riskLabel = "🔴 HIGH RISK";
+            aiStatus = "🔴 Hold";
+          } else if (risk.score > 25) {
+            riskLabel = "🟡 Moderate";
+            aiStatus = "🟡 Hold/Volatile";
+          } else if (sym === "SOL" || sym === "JUP" || sym === "PYTH") {
+            aiStatus = "🟢 Strong Buy";
+          }
+
+          messageText += `• *${sym}*: ${priceUsd} (${change24h}) | ${riskLabel} | *${aiStatus}*\n`;
+        } else {
+          messageText += `• *${sym}*: *N/A* (Network issue)\n`;
+        }
+      }
+      messageText += `\n`;
+    }
+
     messageText += `---\n` +
-      `💡 *Search or type any other token ticker (e.g. BONK, JUP) or paste its Solana mint address directly to run custom AI analysis.*`;
+      `💡 *Search or type any other token ticker (e.g. BOME, JTO) or paste its Solana mint address directly to run custom AI analysis.*`;
 
     const keyboard = [
       [
-        { text: "Wrapped SOL 🟢", callback_data: "select_signal_SOL" },
-        { text: "Jupiter JUP 🟢", callback_data: "select_signal_JUP" }
+        { text: "SOL 🟢", callback_data: "select_signal_SOL" },
+        { text: "JUP 🟢", callback_data: "select_signal_JUP" },
+        { text: "RAY 🟢", callback_data: "select_signal_RAY" },
+        { text: "JTO 🟢", callback_data: "select_signal_JTO" }
       ],
       [
-        { text: "dogwifhat WIF 🟡", callback_data: "select_signal_WIF" },
-        { text: "Bonk BONK 🟢", callback_data: "select_signal_BONK" }
+        { text: "WIF 🟡", callback_data: "select_signal_WIF" },
+        { text: "BONK 🟢", callback_data: "select_signal_BONK" },
+        { text: "POPCAT 🟡", callback_data: "select_signal_POPCAT" },
+        { text: "BOME 🟡", callback_data: "select_signal_BOME" }
+      ],
+      [
+        { text: "PYTH 🟢", callback_data: "select_signal_PYTH" },
+        { text: "RENDER 🟢", callback_data: "select_signal_RENDER" }
       ],
       [
         { text: "🔍 Custom Ticker / Address", callback_data: "action_custom_ticker" }
