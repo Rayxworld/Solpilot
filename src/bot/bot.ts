@@ -2,11 +2,7 @@ import { Telegraf, Context, session } from "telegraf";
 import { config } from "../config/env";
 import { registerCommands } from "../commands/index";
 import { rateLimiterMiddleware } from "../middleware/rateLimiter";
-import { handleSignal } from "../commands/signal";
-import { fetchTokenPairDetails } from "../market/dexScreener";
-import { analyzeTokenRisk } from "../market/dexScreener";
-import { buildSignalExplanation } from "../ai/aiEngine";
-import { brand } from "../branding";
+import { analyzeAndReplySignal } from "../commands/signal";
 import { logger } from "../utils/logger";
 
 interface MySession {
@@ -54,40 +50,8 @@ export function createBot(): Telegraf<MyContext> {
       if (!text || text.startsWith("/")) return;
 
       if (ctx.session?.awaitingSymbol) {
-        await ctx.reply(`🔍 Analyzing "${text.toUpperCase()}"... Running DexScreener metrics & risk heuristic engine.`);
-
-        const pair = await fetchTokenPairDetails(text);
-        if (!pair) {
-          await ctx.reply(`⚠️ No active trading pairs found for "${text.toUpperCase()}" on Solana. Check symbol/mint spelling.`);
-          ctx.session.awaitingSymbol = false;
-          return;
-        }
-
-        const risk = analyzeTokenRisk(pair);
-        const aiCommentary = await buildSignalExplanation(text, pair, risk);
-
-        const priceUsd = pair.priceUsd ? `$${parseFloat(pair.priceUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}` : "N/A";
-        const change24h = pair.priceChange?.h24 !== undefined ? `${pair.priceChange.h24 >= 0 ? "+" : ""}${pair.priceChange.h24}%` : "N/A";
-        const liquidity = pair.liquidity?.usd ? `$${Math.round(pair.liquidity.usd).toLocaleString()}` : "N/A";
-        const volume = pair.volume?.h24 ? `$${Math.round(pair.volume.h24).toLocaleString()}` : "N/A";
-
-        const replyMsg = 
-          `*${pair.baseToken.symbol.toUpperCase()} / ${pair.quoteToken.symbol.toUpperCase()} Signal* 📈\n\n` +
-          `*Live Pricing Metrics (DEX: ${pair.dexId.toUpperCase()}):*\n` +
-          `- Price: *${priceUsd}*\n` +
-          `- 24h Change: *${change24h}*\n` +
-          `- Liquidity Pool: *${liquidity}*\n` +
-          `- 24h Trading Volume: *${volume}*\n\n` +
-          `*Anti-Rug Heuristics Risk Profile:*\n` +
-          `- Safety Rating Score: *${risk.score}/100* (lower is safer)\n` +
-          `- Assessment: *${risk.isRugPotential ? "⚠️ HIGH SUSPICION OF RUG RISK" : risk.score > 25 ? "Moderate risk profile" : "Low risk profile"}*\n` +
-          `${risk.warnings.length > 0 ? risk.warnings.map(w => `  • ${w}`).join("\n") + "\n" : ""}\n` +
-          `*SolPilot AI Commentary:*\n` +
-          `${aiCommentary}\n\n` +
-          `_${brand.disclaimer}_`;
-
-        await ctx.replyWithMarkdown(replyMsg);
         ctx.session.awaitingSymbol = false;
+        await analyzeAndReplySignal(ctx, text);
       }
     } catch (error) {
       logger.error("Text message handling error:", error);

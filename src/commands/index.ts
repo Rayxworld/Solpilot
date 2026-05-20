@@ -1,7 +1,7 @@
 import { Telegraf } from "telegraf";
 import { handleStart } from "./start";
 import { handleHelp } from "./help";
-import { handleSignal } from "./signal";
+import { handleSignal, showRecommendations, analyzeAndReplySignal } from "./signal";
 import { handlePortfolio } from "./portfolio";
 import { handleWatchlist } from "./watchlist";
 import { handlePaperTrade } from "./papertrade";
@@ -11,6 +11,7 @@ import { handleStatus } from "./status";
 import { getChainHealth } from "../solana/solanaUtils";
 import { brand } from "../branding";
 import { logger } from "../utils/logger";
+import { executePaperBuy } from "../trading/paperTrading";
 
 /**
  * Registers all Telegram bot commands, text listener logic, and callback query menus
@@ -80,8 +81,23 @@ export function registerCommands(bot: Telegraf<any>) {
       const data = callbackQuery.data;
 
       if (data === "menu_signal") {
-        await ctx.reply("Enter a Solana token ticker or address to get a risk-aware AI signal (e.g. SOL, BONK, WIF):");
+        await showRecommendations(ctx);
+      } else if (data.startsWith("select_signal_")) {
+        const symbol = data.substring("select_signal_".length);
+        await analyzeAndReplySignal(ctx, symbol);
+      } else if (data === "action_custom_ticker") {
+        await ctx.reply("💬 Enter a custom Solana token ticker or contract address (e.g. BONK, WIF) to run custom AI analysis:");
         ctx.session = { awaitingSymbol: true };
+      } else if (data.startsWith("quick_buy_")) {
+        const parts = data.substring("quick_buy_".length).split("_");
+        const symbol = parts[0];
+        const usdSize = parseFloat(parts[1]);
+        const userId = ctx.from?.id.toString();
+        if (userId) {
+          await ctx.reply(`⏳ Initiating simulated buy order for ${symbol.toUpperCase()} ($${usdSize.toFixed(2)} size)...`);
+          const result = await executePaperBuy(userId, symbol, usdSize);
+          await ctx.reply(result.message);
+        }
       } else if (data === "menu_portfolio") {
         await handlePortfolio(ctx);
       } else if (data === "menu_settings") {
