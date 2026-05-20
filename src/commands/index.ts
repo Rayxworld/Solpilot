@@ -13,6 +13,7 @@ import { brand } from "../branding";
 import { logger } from "../utils/logger";
 import { executePaperBuy } from "../trading/paperTrading";
 
+
 /**
  * Registers all Telegram bot commands, text listener logic, and callback query menus
  */
