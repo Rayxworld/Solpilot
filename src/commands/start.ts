@@ -9,20 +9,23 @@ export async function handleStart(ctx: Context) {
   }
 
   await ctx.replyWithMarkdown(
-    `*${brand.name}* 🚀\n_${brand.tagline}_\n\nHello, I'm your AI trading copilot for Solana.\n` +
-    `I help you analyze Solana tokens with data-driven AI signals, track portfolio performance, and simulate trades in a paper trading sandbox.\n\n` +
-    `Use the persistent dashboard menu at the bottom of your screen to navigate quickly, or type /help to view available commands.`,
+    `*${brand.name}*\n_${brand.tagline}_\n\n` +
+      `SolPilot is your Solana strategy agent, not just a buy/sell chat bot.\n\n` +
+      `Use signals to inspect tokens, set risk rules, then start the paper agent to scan, size, enter, and auto-manage simulated positions. Live deposits stay locked until production wallet controls are ready.`,
     {
       reply_markup: {
         keyboard: [
           [
-            { text: "📊 Get AI Signal" },
-            { text: "💼 My Portfolio" }
+            { text: "AI Signals" },
+            { text: "SolPilot Agent" }
           ],
           [
-            { text: "👁️ Watchlist" },
-            { text: "⚙️ Settings" },
-            { text: "❓ Help" }
+            { text: "Portfolio" },
+            { text: "Risk Settings" }
+          ],
+          [
+            { text: "Deposit / Live Access" },
+            { text: "Help" }
           ]
         ],
         resize_keyboard: true
@@ -30,3 +33,4 @@ export async function handleStart(ctx: Context) {
     }
   );
 }
+

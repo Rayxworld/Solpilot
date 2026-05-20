@@ -1,12 +1,11 @@
 import { Context } from "telegraf";
 import { ensureUser } from "../database/prismaDb";
+import { formatAgentStatus, getAgentSession, startPaperAgent, stopAgent } from "../services/agentService";
+import { getRiskProfile } from "../services/riskService";
 import { logger } from "../utils/logger";
 
 /**
- * /agent command
- *
- * MVP for now: acknowledges that the agent would start.
- * Real implementation will create a background worker loop for watchlist/snipe execution.
+ * Controls the SolPilot autonomous paper strategy agent.
  */
 export async function handleAgent(ctx: Context) {
   try {
@@ -18,33 +17,64 @@ export async function handleAgent(ctx: Context) {
     const text = (ctx.message as any)?.text || "";
     const parts = text.split(" ").slice(1);
     const action = (parts[0] || "status").toLowerCase();
+    const budget = parts[1] ? parseFloat(parts[1]) : undefined;
 
     if (action === "start") {
       await ctx.reply(
-        "🤖 Agent start requested (MVP).\n" +
-          "Next: connect wallet/deposit tracking and enable real swaps/snipes execution."
+        "Starting SolPilot Agent in paper mode. It will scan the market, apply your risk rules, and simulate entries automatically."
       );
+      const session = await startPaperAgent(userId, budget);
+      await ctx.replyWithMarkdown(formatAgentStatus(session), agentKeyboard());
       return;
     }
 
     if (action === "stop") {
-      await ctx.reply(
-        "🛑 Agent stop requested (MVP).\n" +
-          "Next: implement cancellation + worker shutdown." 
+      const session = await stopAgent(userId);
+      await ctx.replyWithMarkdown(formatAgentStatus(session), agentKeyboard());
+      return;
+    }
+
+    if (action === "rules") {
+      const profile = await getRiskProfile(userId);
+      await ctx.replyWithMarkdown(
+        `*SolPilot Agent Rules*\n\n` +
+          `The agent trades in *paper mode* using the same protection layer as manual paper trades.\n\n` +
+          `- Max entry size: *$${profile.maxTradeSize.toFixed(2)}*\n` +
+          `- Stop Loss: *-${profile.stopLossPct.toFixed(1)}%*\n` +
+          `- Take Profit: *+${profile.takeProfitPct.toFixed(1)}%*\n` +
+          `- Cooldown: *${profile.cooldownMinutes} minutes*\n` +
+          `- Mode: *${profile.antiRugEnabled ? "SAFE - blocks high-risk tokens" : "DEGEN - allows higher-risk momentum"}*\n\n` +
+          `Update rules with /settings. Example: \`/settings size 25\`, \`/settings tp 35\`, \`/settings antirug 0\`.`,
+        agentKeyboard()
       );
       return;
     }
 
-    await ctx.reply(
-      "🤖 Agent controls (MVP)\n\n" +
-        "• /agent start\n" +
-        "• /agent stop\n" +
-        "• /agent status\n\n" +
-        "Real execution requires: wallet management, deposit tracking, and Jupiter/swap execution." 
-    );
+    await ctx.replyWithMarkdown(formatAgentStatus(getAgentSession(userId)), agentKeyboard());
   } catch (error: any) {
     logger.error("handleAgent error:", error);
     await ctx.reply("An error occurred while processing the agent command.");
   }
+}
+
+export function agentKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "Start Paper Agent", callback_data: "agent_start" },
+          { text: "Stop Agent", callback_data: "agent_stop" }
+        ],
+        [
+          { text: "Agent Rules", callback_data: "agent_rules" },
+          { text: "Portfolio", callback_data: "menu_portfolio" }
+        ],
+        [
+          { text: "Deposit / Live Access", callback_data: "menu_deposit" },
+          { text: "Signals", callback_data: "menu_signal" }
+        ]
+      ]
+    }
+  };
 }
 

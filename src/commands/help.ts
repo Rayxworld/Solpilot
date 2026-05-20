@@ -1,20 +1,24 @@
 import { Context } from "telegraf";
 
 export async function handleHelp(ctx: Context) {
-  await ctx.replyWithMarkdown(`
-*SolPilot Command Guide* 🚀
-
-*Ecosystem & Insights*
-/signal <ticker|mint> — Fetch DexScreener stats & get an AI trading commentary
-/status — Check Solana RPC and network status
-/risk — View the platform risk disclosures & anti-rug warning
-
-*Paper Trading & Portfolio*
-/portfolio — View simulated cash balance, holdings, and open positions
-/watchlist — Manage your tracked token list
-/papertrade — Open simulated buy/sell orders (e.g. /papertrade buy SOL 100)
-/settings — Review and update your risk limits, Stop-Loss, and Take-Profit
-
-Use the interactive menu at /menu to easily click buttons.
-  `);
+  await ctx.replyWithMarkdown(
+    `*SolPilot Command Guide*\n\n` +
+      `*Agentic Trading*\n` +
+      `/agent - View agent status\n` +
+      `/agent start 100 - Start autonomous paper trading with a $100 strategy budget\n` +
+      `/agent stop - Stop the active agent\n` +
+      `/agent rules - View the rules the agent must obey\n` +
+      `/deposit - View deposit and live-agent access status\n\n` +
+      `*Signals & Research*\n` +
+      `/signal <ticker|mint> - Fetch DexScreener stats and AI commentary\n` +
+      `/status - Check Solana RPC and network status\n` +
+      `/risk - View platform risk disclosures\n\n` +
+      `*Portfolio & Rules*\n` +
+      `/portfolio - View simulated balance and open positions\n` +
+      `/papertrade - Open or close manual simulated trades\n` +
+      `/settings - Update size, cooldown, stop-loss, take-profit, and SAFE/DEGEN mode\n` +
+      `/watchlist - Manage tracked tokens\n\n` +
+      `Use /menu for the button dashboard.`
+  );
 }
+
