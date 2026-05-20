@@ -125,6 +125,40 @@ app.get("/metrics", async (req, res) => {
 // 5. Internal Admin Dashboard System
 // ==========================================
 
+// Test DexScreener Integration
+app.get("/admin/test-dex", async (req, res) => {
+  const query = (req.query.q as string) || "SOL";
+  try {
+    const pair = await fetchTokenPairDetails(query);
+    return res.json({
+      query,
+      success: !!pair,
+      pair
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      error: err.message,
+      stack: err.stack
+    });
+  }
+});
+
+// Test AI Integration
+app.get("/admin/test-ai", async (req, res) => {
+  try {
+    const aiCommentary = await buildSignalExplanation("SOL", null, null);
+    return res.json({
+      success: true,
+      commentary: aiCommentary
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      error: err.message,
+      stack: err.stack
+    });
+  }
+});
+
 // Admin Uptime & Health Status
 app.get("/admin/health", async (req, res) => {
   try {
