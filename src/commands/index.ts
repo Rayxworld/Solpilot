@@ -27,6 +27,29 @@ export function registerCommands(bot: Telegraf<any>) {
   bot.command("risk", handleRisk);
   bot.command("status", handleStatus);
 
+  // Restart command
+  bot.command("restart", async (ctx) => {
+    const fromId = ctx.from?.id;
+    const username = ctx.from?.username;
+    
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminChatId = process.env.ADMIN_CHAT_ID;
+    
+    if (
+      (adminUsername && username === adminUsername) ||
+      (adminChatId && String(fromId) === adminChatId) ||
+      (!adminUsername && !adminChatId)
+    ) {
+      logger.info(`Restart command authorized for Telegram User: ${username} (ID: ${fromId})`);
+      await ctx.reply("🔄 SolPilot reboot initiated! Shutting down and restarting process on Render...");
+      setTimeout(() => {
+        process.exit(0);
+      }, 1000);
+    } else {
+      await ctx.reply("❌ Unauthorized. Only the bot administrator can restart this service.");
+    }
+  });
+
   // Menu command
   bot.command("menu", async (ctx) => {
     await ctx.replyWithMarkdown(
