@@ -97,5 +97,6 @@ CRITICAL DIRECTIVES:
   }
 
   logger.error("All fallback models failed in buildSignalExplanation. Last error:", lastError);
-  return `Error communicating with the AI Engine: ${lastError?.message || "Service Temporarily Unavailable"}.`;
+  return `⚠️ SolPilot AI commentary is temporarily optimizing its neural weights. Tap "Refresh Signal" to retry, or check back shortly!`;
 }
+
