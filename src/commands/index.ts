@@ -54,16 +54,21 @@ export function registerCommands(bot: Telegraf<any>) {
   // Menu command
   bot.command("menu", async (ctx) => {
     await ctx.replyWithMarkdown(
-      `*SolPilot Interactive Control Panel* 🎮\n\nChoose an action below to automate your research or check your paper wallet:`,
+      `*SolPilot Interactive Control Panel* 🎮\n\nUse the persistent menu buttons at the bottom of your screen to automate your research, check your watchlist, adjust settings, or inspect your paper wallet:`,
       {
         reply_markup: {
-          inline_keyboard: [
-            [{ text: "📊 Get AI Signal", callback_data: "menu_signal" }],
-            [{ text: "💼 View Portfolio", callback_data: "menu_portfolio" }],
-            [{ text: "⚙️ Risk Settings", callback_data: "menu_settings" }],
-            [{ text: "👁️ Watchlist Manager", callback_data: "menu_watchlist" }],
-            [{ text: "🔌 Solana Status", callback_data: "menu_status" }]
-          ]
+          keyboard: [
+            [
+              { text: "📊 Get AI Signal" },
+              { text: "💼 My Portfolio" }
+            ],
+            [
+              { text: "👁️ Watchlist" },
+              { text: "⚙️ Settings" },
+              { text: "❓ Help" }
+            ]
+          ],
+          resize_keyboard: true
         }
       }
     );

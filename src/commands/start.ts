@@ -11,15 +11,21 @@ export async function handleStart(ctx: Context) {
   await ctx.replyWithMarkdown(
     `*${brand.name}* 🚀\n_${brand.tagline}_\n\nHello, I'm your AI trading copilot for Solana.\n` +
     `I help you analyze Solana tokens with data-driven AI signals, track portfolio performance, and simulate trades in a paper trading sandbox.\n\n` +
-    `Choose an option below or type /help to view available commands.`,
+    `Use the persistent dashboard menu at the bottom of your screen to navigate quickly, or type /help to view available commands.`,
     {
       reply_markup: {
-        inline_keyboard: [
-          [{ text: "📊 Get Signal", callback_data: "menu_signal" }],
-          [{ text: "💼 My Portfolio", callback_data: "menu_portfolio" }],
-          [{ text: "⚙️ Risk Settings", callback_data: "menu_settings" }],
-          [{ text: "💡 How it works", callback_data: "menu_help" }]
-        ]
+        keyboard: [
+          [
+            { text: "📊 Get AI Signal" },
+            { text: "💼 My Portfolio" }
+          ],
+          [
+            { text: "👁️ Watchlist" },
+            { text: "⚙️ Settings" },
+            { text: "❓ Help" }
+          ]
+        ],
+        resize_keyboard: true
       }
     }
   );
