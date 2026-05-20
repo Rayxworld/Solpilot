@@ -58,23 +58,44 @@ CRITICAL DIRECTIVES:
 4. Keep the output under 140 words. Use bullet points for readability if helpful.
 `;
 
-  try {
-    const response = await openai.chat.completions.create({
-      model: config.openAiModel,
-      messages: [
-        { 
-          role: "system", 
-          content: "You are a professional, highly cautious crypto trading research assistant. You speak objectively and always warn users of high risk and volatility." 
-        },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 200,
-      temperature: 0.5
-    });
+  const fallbackModels = [
+    config.openAiModel,
+    "google/gemini-2.5-flash:free",
+    "meta-llama/llama-3-8b-instruct:free",
+    "qwen/qwen-2.5-72b-instruct:free"
+  ].filter(Boolean);
 
-    return response.choices?.[0]?.message?.content?.trim() || "Failed to generate market signal commentary.";
-  } catch (error) {
-    logger.error("buildSignalExplanation error:", error);
-    return "Error communicating with the AI Engine. Please check the network or token parameters.";
+  let lastError: any = null;
+
+  for (const model of fallbackModels) {
+    try {
+      logger.info(`Attempting to generate AI commentary using model: ${model}`);
+      const response = await openai.chat.completions.create({
+        model: model,
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a professional, highly cautious crypto trading research assistant. You speak objectively and always warn users of high risk and volatility." 
+          },
+          { role: "user", content: prompt }
+        ],
+        max_tokens: 200,
+        temperature: 0.5
+      });
+
+      const content = response.choices?.[0]?.message?.content?.trim();
+      if (content) {
+        logger.info(`Successfully generated AI commentary with model: ${model}`);
+        return content;
+      }
+    } catch (error: any) {
+      lastError = error;
+      logger.warn(`Model ${model} failed to generate commentary: ${error?.message || error}`);
+      // Wait 500ms before trying the next model
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
   }
+
+  logger.error("All fallback models failed in buildSignalExplanation. Last error:", lastError);
+  return `Error communicating with the AI Engine: ${lastError?.message || "Service Temporarily Unavailable"}.`;
 }
