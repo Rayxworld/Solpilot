@@ -62,11 +62,15 @@ export async function handleSettings(ctx: Context) {
       if (param === "antirug") {
         const enabled = parseInt(valueStr, 10);
         if (enabled !== 0 && enabled !== 1) {
-          await ctx.reply("Please use 1 to enable anti-rug filters or 0 to disable them.");
+          await ctx.reply("Please use 1 to set to SAFE MODE or 0 to set to DEGEN MODE.");
           return;
         }
         await updateRiskProfile(userId, { antiRugEnabled: enabled === 1 });
-        await ctx.reply(`✅ Updated: Anti-Rug heuristic validation set to *${enabled === 1 ? "ENABLED" : "DISABLED"}*.`, { parse_mode: "Markdown" });
+        await ctx.reply(
+          `✅ Updated: Trading Mode set to *${enabled === 1 ? "🛡️ SAFE MODE" : "🔥 DEGEN MODE"}*.\n\n` +
+          `_${enabled === 1 ? "Anti-rug filters will block high-risk trades." : "Anti-rug filters are bypassed. Trade high-risk meme coins at your own risk!"}_`,
+          { parse_mode: "Markdown" }
+        );
         return;
       }
 
@@ -77,7 +81,7 @@ export async function handleSettings(ctx: Context) {
     // Default: Display active risk settings
     const profile = await getRiskProfile(userId);
     await ctx.replyWithMarkdown(
-      `*SolPilot Risk Management Settings* ⚙️\n\n` +
+      `*SolPilot Risk & Trading Mode Settings* ⚙️\n\n` +
       `Review and update your automated risk thresholds for simulated trades:\n\n` +
       `• *Max size per trade:* $${profile.maxTradeSize.toFixed(2)} USD\n` +
       `  _Update:_ \`/settings size <usd_value>\`\n\n` +
@@ -87,9 +91,9 @@ export async function handleSettings(ctx: Context) {
       `  _Update:_ \`/settings sl <percent>\`\n\n` +
       `• *Default Take Profit:* +${profile.takeProfitPct.toFixed(1)}%\n` +
       `  _Update:_ \`/settings tp <percent>\`\n\n` +
-      `• *Anti-Rug filter:* ${profile.antiRugEnabled ? "*ENABLED*" : "*DISABLED*"}\n` +
-      `  _Update:_ \`/settings antirug <1_or_0>\`\n\n` +
-      `_Risk checks are evaluated automatically before buy orders are simulated in paper trading._`
+      `• *Trading Mode:* ${profile.antiRugEnabled ? "🛡️ *SAFE MODE* (Anti-Rug Enabled)" : "🔥 *DEGEN MODE* (Anti-Rug Disabled)"}\n` +
+      `  _Toggle:_ \`/settings antirug <1_for_Safe_0_for_Degen>\`\n\n` +
+      `_Degen Mode allows you to trade high-risk meme coins without anti-rug locks, while Safe Mode blocks trades with high risk scores (>= 60/100)._`
     );
   } catch (error) {
     logger.error("handleSettings error:", error);
