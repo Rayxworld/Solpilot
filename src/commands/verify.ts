@@ -36,11 +36,10 @@ export async function confirmVerification(ctx: Context) {
       `*Account Verified*\n\n` +
         `Telegram ID *${userId}* is now bound to this SolPilot session.\n` +
         `Verified at: *${verifiedAt.toLocaleString()}*\n\n` +
-        `You can now use /agent start 100 or /deposit.`
+        `You can now use /go or /fund.`
     );
   } catch (error) {
     logger.error("confirmVerification error:", error);
     await ctx.reply("An error occurred while verifying your account.");
   }
 }
-

@@ -19,7 +19,7 @@ export async function handleDeposit(ctx: Context) {
     if (!(await requireVerification(ctx))) return;
 
     const text = ((ctx.message as any)?.text || "").trim();
-    const parts = text.startsWith("/deposit") ? text.split(/\s+/).slice(1) : [];
+    const parts = text.startsWith("/deposit") || text.startsWith("/fund") ? text.split(/\s+/).slice(1) : [];
     const amountStr = parts[0];
     const amount = amountStr ? parseFloat(amountStr) : undefined;
 

@@ -8,7 +8,8 @@ export const config = {
   openAiBaseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
   openAiModel: process.env.OPENAI_MODEL || "gpt-4o-mini",
   solanaRpcUrl: process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
-  databasePath: process.env.DATABASE_PATH || "./solpilot.db"
+  databasePath: process.env.DATABASE_PATH || "./solpilot.db",
+  adminFeedbackChatId: process.env.ADMIN_FEEDBACK_CHAT_ID || process.env.ADMIN_CHAT_ID || ""
 };
 
 export function validateConfig() {

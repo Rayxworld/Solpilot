@@ -20,15 +20,19 @@ export async function handleStart(ctx: Context) {
             { text: "SolPilot Agent" }
           ],
           [
-            { text: "Portfolio" },
-            { text: "Risk Settings" }
+            { text: "Beta Guide" },
+            { text: "Portfolio" }
           ],
           [
+            { text: "Risk Settings" },
             { text: "Deposit / Live Access" },
             { text: "Verify Account" }
           ],
           [
             { text: "Help" }
+          ],
+          [
+            { text: "Send Feedback" }
           ]
         ],
         resize_keyboard: true

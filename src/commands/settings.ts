@@ -10,8 +10,8 @@ export async function handleSettings(ctx: Context) {
 
     await ensureUser(userId, ctx.from?.username);
 
-    const text = (ctx.message as any)?.text || "";
-    const parts = text.split(" ").slice(1);
+    const text = ((ctx.message as any)?.text || "").trim();
+    const parts = text.startsWith("/") ? text.split(/\s+/).slice(1) : [];
     const param = parts[0]?.toLowerCase();
     const valueStr = parts[1];
 
@@ -24,7 +24,7 @@ export async function handleSettings(ctx: Context) {
           return;
         }
         await updateRiskProfile(userId, { maxTradeSize: val });
-        await ctx.reply(`✅ Updated: Max trade size set to *$${val.toFixed(2)} USD*.`, { parse_mode: "Markdown" });
+        await ctx.reply(`Updated: Max paper entry size set to *$${val.toFixed(2)}*.`, { parse_mode: "Markdown" });
         return;
       }
 
@@ -35,68 +35,83 @@ export async function handleSettings(ctx: Context) {
           return;
         }
         await updateRiskProfile(userId, { cooldownMinutes: minutes });
-        await ctx.reply(`✅ Updated: Trade cooldown set to *${minutes} minutes*.`, { parse_mode: "Markdown" });
+        await ctx.reply(`Updated: Agent cooldown set to *${minutes} minutes*.`, { parse_mode: "Markdown" });
         return;
       }
 
       if (param === "sl") {
         if (isNaN(val) || val <= 0 || val >= 100) {
-          await ctx.reply("Please enter a valid Stop Loss percentage (between 0.1% and 99.9%).");
+          await ctx.reply("Please enter a valid stop-loss percentage between 0.1 and 99.9.");
           return;
         }
         await updateRiskProfile(userId, { stopLossPct: val });
-        await ctx.reply(`✅ Updated: Default Stop Loss set to *-${val.toFixed(1)}%*.`, { parse_mode: "Markdown" });
+        await ctx.reply(`Updated: Default paper stop-loss set to *-${val.toFixed(1)}%*.`, { parse_mode: "Markdown" });
         return;
       }
 
       if (param === "tp") {
         if (isNaN(val) || val <= 0) {
-          await ctx.reply("Please enter a valid positive Take Profit percentage.");
+          await ctx.reply("Please enter a valid positive take-profit percentage.");
           return;
         }
         await updateRiskProfile(userId, { takeProfitPct: val });
-        await ctx.reply(`✅ Updated: Default Take Profit set to *+${val.toFixed(1)}%*.`, { parse_mode: "Markdown" });
+        await ctx.reply(`Updated: Default paper take-profit set to *+${val.toFixed(1)}%*.`, { parse_mode: "Markdown" });
+        return;
+      }
+
+      if (param === "mode") {
+        const normalized = valueStr.toLowerCase();
+        if (normalized !== "safe" && normalized !== "degen") {
+          await ctx.reply("Use `/rules mode safe` or `/rules mode degen`.", { parse_mode: "Markdown" });
+          return;
+        }
+        await updateRiskProfile(userId, { antiRugEnabled: normalized === "safe" });
+        await ctx.reply(
+          `Updated: Paper agent mode set to *${normalized.toUpperCase()}*.\n\n` +
+            `_${normalized === "safe" ? "SAFE blocks high-risk tokens." : "DEGEN allows higher-risk momentum candidates for paper testing."}_`,
+          { parse_mode: "Markdown" }
+        );
         return;
       }
 
       if (param === "antirug") {
         const enabled = parseInt(valueStr, 10);
         if (enabled !== 0 && enabled !== 1) {
-          await ctx.reply("Please use 1 to set to SAFE MODE or 0 to set to DEGEN MODE.");
+          await ctx.reply("Please use 1 for SAFE mode or 0 for DEGEN mode.");
           return;
         }
         await updateRiskProfile(userId, { antiRugEnabled: enabled === 1 });
         await ctx.reply(
-          `✅ Updated: Trading Mode set to *${enabled === 1 ? "🛡️ SAFE MODE" : "🔥 DEGEN MODE"}*.\n\n` +
-          `_${enabled === 1 ? "Anti-rug filters will block high-risk trades." : "Anti-rug filters are bypassed. Trade high-risk meme coins at your own risk!"}_`,
+          `Updated: Paper agent mode set to *${enabled === 1 ? "SAFE" : "DEGEN"}*.\n\n` +
+            `_${enabled === 1 ? "SAFE blocks high-risk tokens." : "DEGEN allows higher-risk momentum candidates for paper testing."}_`,
           { parse_mode: "Markdown" }
         );
         return;
       }
 
-      await ctx.reply("Unknown setting parameter. Type /settings to see the configuration guide.");
+      await ctx.reply("Unknown rule. Type /rules to see the beta rule guide.");
       return;
     }
 
-    // Default: Display active risk settings
     const profile = await getRiskProfile(userId);
     await ctx.replyWithMarkdown(
-      `*SolPilot Risk & Trading Mode Settings* ⚙️\n\n` +
-      `Review and update your automated risk thresholds for simulated trades:\n\n` +
-      `• *Max size per trade:* $${profile.maxTradeSize.toFixed(2)} USD\n` +
-      `  _Update:_ \`/settings size <usd_value>\`\n\n` +
-      `• *Trade cooldown:* ${profile.cooldownMinutes} minutes\n` +
-      `  _Update:_ \`/settings cooldown <minutes>\`\n\n` +
-      `• *Default Stop Loss:* -${profile.stopLossPct.toFixed(1)}%\n` +
-      `  _Update:_ \`/settings sl <percent>\`\n\n` +
-      `• *Default Take Profit:* +${profile.takeProfitPct.toFixed(1)}%\n` +
-      `  _Update:_ \`/settings tp <percent>\`\n\n` +
-      `• *Trading Mode:* ${profile.antiRugEnabled ? "🛡️ *SAFE MODE* (Anti-Rug Enabled)" : "🔥 *DEGEN MODE* (Anti-Rug Disabled)"}\n` +
-      `  _Toggle:_ \`/settings antirug <1_for_Safe_0_for_Degen>\`\n\n` +
-      `_Degen Mode allows you to trade high-risk meme coins without anti-rug locks, while Safe Mode blocks trades with high risk scores (>= 60/100)._`
+      `*SolPilot Beta Rules*\n\n` +
+        `These rules control paper-agent entries and manual paper trades.\n\n` +
+        `- Max entry size: *$${profile.maxTradeSize.toFixed(2)}*\n` +
+        `  Update: \`/rules size 25\`\n\n` +
+        `- Agent cooldown: *${profile.cooldownMinutes} minutes*\n` +
+        `  Update: \`/rules cooldown 5\`\n\n` +
+        `- Stop-loss: *-${profile.stopLossPct.toFixed(1)}%*\n` +
+        `  Update: \`/rules sl 8\`\n\n` +
+        `- Take-profit: *+${profile.takeProfitPct.toFixed(1)}%*\n` +
+        `  Update: \`/rules tp 30\`\n\n` +
+        `- Mode: *${profile.antiRugEnabled ? "SAFE" : "DEGEN"}*\n` +
+        `  Update: \`/rules mode safe\` or \`/rules mode degen\`\n\n` +
+        `_Beta note: SolPilot is paper-trading only. Live deposits and swaps are locked._`
     );
   } catch (error) {
     logger.error("handleSettings error:", error);
-    await ctx.reply("An error occurred while fetching your risk management settings.");
+    await ctx.reply("An error occurred while fetching your beta rules.");
   }
 }
+

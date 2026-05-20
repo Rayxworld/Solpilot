@@ -4,6 +4,7 @@ export async function handleHelp(ctx: Context) {
   await ctx.replyWithMarkdown(
     `*SolPilot Command Guide*\n\n` +
       `*Fast Commands*\n` +
+      `/beta - Open beta launch checklist\n` +
       `/v - Verify your Telegram account\n` +
       `/go - Start the paper agent with $100 default budget\n` +
       `/off - Stop the agent\n` +
@@ -11,6 +12,8 @@ export async function handleHelp(ctx: Context) {
       `/s BONK - Analyze one token\n` +
       `/me - View portfolio\n` +
       `/fund - View deposit/live access\n` +
+      `/fb - Send beta feedback\n` +
+      `/whoami - Show your Telegram chat ID for admin setup\n` +
       `/rules - Update risk settings\n` +
       `/trade - Manual simulated trades\n\n` +
       `*Advanced Commands*\n` +

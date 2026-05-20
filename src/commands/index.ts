@@ -9,6 +9,9 @@ import { handleSettings } from "./settings";
 import { handleRisk } from "./risk";
 import { handleStatus } from "./status";
 import { confirmVerification, handleVerify } from "./verify";
+import { handleBeta } from "./beta";
+import { handleFeedback } from "./feedback";
+import { handleWhoami } from "./whoami";
 import { logger } from "../utils/logger";
 import { executePaperBuy } from "../trading/paperTrading";
 import { handleDeposit } from "./deposit";
@@ -25,15 +28,19 @@ function mainKeyboard() {
         { text: "SolPilot Agent" }
       ],
       [
-        { text: "Portfolio" },
-        { text: "Risk Settings" }
+        { text: "Beta Guide" },
+        { text: "Portfolio" }
       ],
       [
+        { text: "Risk Settings" },
         { text: "Deposit / Live Access" },
         { text: "Verify Account" }
       ],
       [
         { text: "Help" }
+      ],
+      [
+        { text: "Send Feedback" }
       ]
     ],
     resize_keyboard: true
@@ -86,6 +93,10 @@ export function registerCommands(bot: Telegraf<any>) {
   });
   bot.command("verify", handleVerify);
   bot.command("v", handleVerify);
+  bot.command("beta", handleBeta);
+  bot.command("feedback", handleFeedback);
+  bot.command("fb", handleFeedback);
+  bot.command("whoami", handleWhoami);
   bot.command("status", handleStatus);
 
   bot.command("restart", async (ctx) => {
@@ -110,7 +121,7 @@ export function registerCommands(bot: Telegraf<any>) {
   bot.command("menu", async (ctx) => {
     await ctx.replyWithMarkdown(
       `*SolPilot Control Panel*\n\n` +
-        `Your workspace for Solana signals, autonomous paper strategy, risk settings, and live-agent readiness.`,
+        `Beta workspace for AI signals, autonomous paper strategy, account verification, and live-agent readiness.`,
       {
         reply_markup: mainKeyboard()
       }
@@ -137,6 +148,10 @@ export function registerCommands(bot: Telegraf<any>) {
         ctx.session = { awaitingSymbol: true };
       } else if (data === "verify_user") {
         await confirmVerification(ctx);
+      } else if (data === "menu_beta") {
+        await handleBeta(ctx);
+      } else if (data === "action_feedback") {
+        await handleFeedback(ctx);
       } else if (data === "agent_start") {
         const userId = ctx.from?.id.toString();
         if (userId) {

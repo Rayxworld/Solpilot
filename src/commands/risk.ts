@@ -3,15 +3,18 @@ import { brand } from "../branding";
 
 export async function handleRisk(ctx: Context) {
   await ctx.replyWithMarkdown(
-    `*SolPilot Safe Trading & Risk Advisory* ⚠️\n\n` +
-    `Meme coins and new token launches in the Solana ecosystem are subject to extreme market forces. Please review our safety criteria before engaging in paper or live trading:\n\n` +
-    `*1. Heuristic Risk Analysis Score:*\n` +
-    `Our built-in engine checks every token for common rug-pull markers: liquidity pool depth, pool age, trading volumes, and extreme volatility. A risk rating is calculated automatically to help you identify bad contracts.\n\n` +
-    `*2. Volatility Warnings:*\n` +
-    `Solana tokens can experience price swings of +/- 90% in minutes. Always ensure your risk profiles (Stop-Loss and Take-Profit) are configured in /settings to automate downside protection.\n\n` +
-    `*3. The Golden Rule:*\n` +
-    `Never risk funds you cannot afford to lose. Utilize our paper trading sandbox (/papertrade) to fully backtest your strategy parameters in real-time before moving to live funds.\n\n` +
-    `*Standard Risk Disclosure:*\n` +
-    `_${brand.disclaimer}_`
+    `*SolPilot Beta Risk Advisory*\n\n` +
+      `SolPilot beta is for AI-assisted research and paper trading only. Live deposits, withdrawals, and real swaps are locked.\n\n` +
+      `*1. AI is a research layer*\n` +
+      `AI commentary explains available market data. It can be wrong, stale, incomplete, or overconfident if upstream data is bad.\n\n` +
+      `*2. Paper trades are simulations*\n` +
+      `Paper entries do not include real slippage, failed transactions, priority fees, routing delays, MEV, or liquidity changes between quote and execution.\n\n` +
+      `*3. Risk engine is heuristic*\n` +
+      `SolPilot checks liquidity, age, volume, volatility, and suspicious conditions. These signals reduce obvious mistakes but cannot prove a token is safe.\n\n` +
+      `*4. Before live funds*\n` +
+      `The product still needs secure wallet handling, deposit reconciliation, withdrawal controls, transaction simulation, slippage limits, and emergency shutdowns.\n\n` +
+      `*Disclosure*\n` +
+      `_${brand.disclaimer}_`
   );
 }
+

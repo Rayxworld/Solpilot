@@ -10,10 +10,13 @@ import { handleHelp } from "../commands/help";
 import { handleAgent } from "../commands/agent";
 import { handleDeposit } from "../commands/deposit";
 import { handleVerify } from "../commands/verify";
+import { handleBeta } from "../commands/beta";
+import { handleFeedback, saveFeedback } from "../commands/feedback";
 import { logger } from "../utils/logger";
 
 interface MySession {
   awaitingSymbol?: boolean;
+  awaitingFeedback?: boolean;
 }
 
 interface MyContext extends Context {
@@ -29,12 +32,15 @@ export function createBot(): Telegraf<MyContext> {
 
   bot.telegram.setMyCommands([
     { command: "menu", description: "Open SolPilot control dashboard" },
+    { command: "beta", description: "Open beta launch checklist" },
     { command: "go", description: "Start the paper agent with default rules" },
     { command: "off", description: "Stop the active agent" },
     { command: "v", description: "Verify your Telegram account" },
     { command: "s", description: "Open AI signal deck" },
     { command: "me", description: "View portfolio" },
     { command: "fund", description: "View deposit and live-agent access" },
+    { command: "fb", description: "Send beta feedback" },
+    { command: "whoami", description: "Show your Telegram chat ID" },
     { command: "rules", description: "Adjust trading risk settings" },
     { command: "agent", description: "Advanced agent controls" },
     { command: "trade", description: "Manual simulated trades" },
@@ -59,6 +65,14 @@ export function createBot(): Telegraf<MyContext> {
       await handleAgent(ctx);
     } catch (error) {
       logger.error("Hears 'SolPilot Agent' error:", error);
+    }
+  });
+
+  bot.hears("Beta Guide", async (ctx) => {
+    try {
+      await handleBeta(ctx);
+    } catch (error) {
+      logger.error("Hears 'Beta Guide' error:", error);
     }
   });
 
@@ -102,6 +116,14 @@ export function createBot(): Telegraf<MyContext> {
     }
   });
 
+  bot.hears("Send Feedback", async (ctx) => {
+    try {
+      await handleFeedback(ctx);
+    } catch (error) {
+      logger.error("Hears 'Send Feedback' error:", error);
+    }
+  });
+
   bot.hears("Help", async (ctx) => {
     try {
       await handleHelp(ctx);
@@ -114,6 +136,12 @@ export function createBot(): Telegraf<MyContext> {
     try {
       const text = (ctx.message?.text || "").trim();
       if (!text || text.startsWith("/")) return;
+
+      if (ctx.session?.awaitingFeedback) {
+        ctx.session.awaitingFeedback = false;
+        await saveFeedback(ctx, text);
+        return;
+      }
 
       if (ctx.session?.awaitingSymbol) {
         ctx.session.awaitingSymbol = false;
