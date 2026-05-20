@@ -211,9 +211,10 @@ export function analyzeTokenRisk(pair: TokenPair): RiskAnalysis {
   }
 
   // 2. Volume Check
-  if (volume24h < 2000) {
+  // Keep this warning intentionally rare; it fires only for very low volume.
+  if (volume24h < 500) {
     score += 20;
-    warnings.push("Negligible trading volume (< $2k 24h) — token might be dead or inactive.");
+    warnings.push("Negligible trading volume (< $500 24h) — token might be dead or inactive.");
   }
 
   // 3. Volatility Check
